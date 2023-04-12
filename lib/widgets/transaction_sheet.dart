@@ -12,6 +12,8 @@ class TransactionSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // use wrap widget to make the bottom sheet
+    // height adjust to the content
     return Wrap(
       children: <Widget>[
         SafeArea(

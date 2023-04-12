@@ -1,11 +1,20 @@
-import 'package:expense_app/widgets/transactions_chart.dart';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 import './models/transaction.dart';
 import './widgets/transaction_list.dart';
 import './widgets/transaction_sheet.dart';
+import './widgets/transactions_chart.dart';
 
-void main() => runApp(const MyApp());
+void main() {
+  // WidgetsFlutterBinding.ensureInitialized();
+  // SystemChrome.setPreferredOrientations([
+  //   DeviceOrientation.portraitUp,
+  //   DeviceOrientation.portraitDown,
+  // ]);
+  runApp(const MyApp());
+}
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -46,6 +55,8 @@ class _MyHomePageState extends State<MyHomePage> {
     }).toList();
   }
 
+  bool _showChart = false;
+
   void _addTransaction(String title, double amount, DateTime date) {
     final transaction = Transaction(
       id: DateTime.now().toString(),
@@ -82,36 +93,77 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+  double getDynamicHeight(percentage, appBar) {
+    final mediaQuery = MediaQuery.of(context);
+    return (mediaQuery.size.height -
+            appBar.preferredSize.height -
+            mediaQuery.padding.top) *
+        percentage;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Personal Expenses'),
-        actions: <Widget>[
-          IconButton(
-            onPressed: () => showNewTransactionForm(context),
-            icon: const Icon(Icons.add_rounded),
-          ),
-        ],
+    final isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
+    final appBar = AppBar(
+      title: const Text('Personal Expenses'),
+      actions: <Widget>[
+        IconButton(
+          onPressed: () => showNewTransactionForm(context),
+          icon: const Icon(Icons.add_rounded),
+        ),
+      ],
+    );
+    final chartWidget = SizedBox(
+      height: getDynamicHeight(isLandscape ? 0.8 : 0.3, appBar),
+      child: TransactionsChart(
+        recentTransactions: _recentTransactions,
       ),
+    );
+    final transactionListWidget = SizedBox(
+      height: getDynamicHeight(0.75, appBar),
+      child: TransactionList(
+        transactions: _transactions,
+        deleteTransactionCallback: _deleteTransaction,
+      ),
+    );
+
+    return Scaffold(
+      appBar: appBar,
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            TransactionsChart(
-              recentTransactions: _recentTransactions,
-            ),
-            TransactionList(
-              transactions: _transactions,
-              deleteTransactionCallback: _deleteTransaction,
-            ),
+            if (isLandscape)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: <Widget>[
+                  const Text('Show chart'),
+                  const SizedBox(
+                    width: 10,
+                  ),
+                  Switch.adaptive(
+                    value: _showChart,
+                    onChanged: (flag) {
+                      setState(() {
+                        _showChart = flag;
+                      });
+                    },
+                  ),
+                ],
+              ),
+            if (isLandscape) _showChart ? chartWidget : transactionListWidget,
+            if (!isLandscape) chartWidget,
+            if (!isLandscape) transactionListWidget,
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => showNewTransactionForm(context),
-        child: const Icon(Icons.add_rounded),
-      ),
+      floatingActionButton: Platform.isAndroid
+          ? FloatingActionButton(
+              onPressed: () => showNewTransactionForm(context),
+              child: const Icon(Icons.add_rounded),
+            )
+          : Container(),
     );
   }
 }
